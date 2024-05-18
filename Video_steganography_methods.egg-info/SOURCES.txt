@@ -1,0 +1,16 @@
+README.md
+setup.py
+Video_steganography_methods.egg-info/PKG-INFO
+Video_steganography_methods.egg-info/SOURCES.txt
+Video_steganography_methods.egg-info/dependency_links.txt
+Video_steganography_methods.egg-info/top_level.txt
+src/__init__.py
+src/methods/__init__.py
+src/methods/bch_code_dwt.py
+src/methods/dtc_psychovisual.py
+src/methods/hamming_code.py
+src/utils/__init__.py
+src/utils/to_binary.py
+src/utils/video_processing.py
+tests/__init__.py
+tests/hamming_tests.py
