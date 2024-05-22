@@ -2,27 +2,33 @@ import magic
 import numpy as np
 
 
-def read_file_to_binary(file_path):
-    """Reads the contents of a file and returns them as binary data."""
+def file_to_binary_1D_arr(file_path):
+    """ Converts the contents of a file to a 1D numpy array of binary values (0s and 1s)."""
     with open(file_path, 'rb') as file:
         binary_data = file.read()
-    return binary_data
+        binary_array = np.array([int(bit) for byte in binary_data for bit in f"{byte:08b}"], dtype=np.uint8)
+        print(f"[INFO] The file '{file_path}' has been successfully converted to a 1D numpy array.")
+    return binary_array
 
-    #retezec na binarni reprezentaci
-    #binary_data= int(inputdata, base=2)
+def binary_1D_arr_to_file(binary_array, file_path):
+    """Converts a 1D numpy array of binary values back to a file."""
+    binary_string = ''.join(binary_array.astype(str))
+    byte_list = [int(binary_string[i:i+8], 2) for i in range(0, len(binary_string), 8)]
+    byte_arr = bytearray(byte_list)
     
+    with open(file_path, 'wb') as file:
+        file.write(byte_arr)
+        print(f"[INFO] The binary array has been successfully converted to the file '{file_path}'.")
+        
+     
+def add_EOT_sequence(message):
+    sequence = np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+    new_message = np.concatenate((message, sequence))
+    return new_message
 
-def determine_file_type(binary_data):
-    """Determines the type of file based on its binary data."""
-    mime_type = magic.from_buffer(binary_data, mime=True)
-    if mime_type.startswith('image'):
-        return 'image'
-    elif mime_type.startswith('video'):
-        return 'video'
-    elif mime_type.startswith('text'):
-        return 'text'
-    else:
-        return 'unknown'
+def check_EOT_sequence(message):
+    sequence = np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+    return np.array_equal(message[-48:], sequence)
 
 
 #------------------------------------------------------testing
@@ -34,31 +40,5 @@ def iterate_over_4_bits(binary_data):
         print(four_bits, end=" ")  # Print the 4-bit chunk
 
 
-def read_file_to_binary_string(file_path):
-  """Načte obsah textového souboru a vrátí binární reprezentaci textu."""
-  with open(file_path, "rb") as f:
-    byte_data = f.read()
-  return "".join(f"{byte:08b}" for byte in byte_data)
 
 
-
-def read_file_to_1D(file_path):
-  """
-  Reads the contents of a file and returns them as a 1D array of zeros and ones.
-
-  Args:
-      file_path (str): The path to the file to be read.
-
-  Returns:
-      numpy.ndarray: A 1D array of zeros and ones representing the binary data.
-  """
-  with open(file_path, 'rb') as file:
-    binary_data = file.read()
-
-  # Convert each byte to its binary string representation
-  byte_strings = [f"{byte:08b}" for byte in binary_data]
-
-  # Join the binary strings and convert them into a 1D array of integers (0 or 1)
-  binary_array = np.array([int(bit) for bit in "".join(byte_strings)])
-
-  return binary_array
