@@ -1,4 +1,5 @@
 from src.utils import video_processing as vid
+from src.utils import w_binary as bnr
 import cv2
 import numpy as np
 import os
@@ -99,6 +100,82 @@ def bin_testtt():
     col = 1
     print(imageV[row, col])
     
+    
+    
+    
+    
+def video_to_frames_to_video_to_frames():
+    #testuje prevedeni na frames, potom zpet na video a potom na frames
+    video_path = r"C:\Users\natal\OneDrive\Desktop\data__test\input\DSC_0588_zaloha.MOV"
+    
+    video_path2 = r"C:\Users\natal\gitHub_projecstNattX\Video_Steganography\video.MOV"
+    vid_properties = vid.video_to_yuv_frames(video_path2)
+    
+    vid.reconstruct_video_from_yuv_frames(video_path, vid_properties)
+    
+def print_pixel_values(image, image_name):
+    indices = [(1, 1), (100, 1000), (1000, 511), (1920, 1080)]
+    print(f"Pixel values for {image_name}:")
+    for x, y in indices:
+        if x < image.shape[1] and y < image.shape[0]:
+            print(f"Pixel at ({x}, {y}): {image[y, x]}")
+        else:
+            print(f"Pixel at ({x}, {y}): Index out of bounds")
+    print()
+    
+    
+def print_all_pixel_values():
+    framey1= r"C:\Users\natal\OneDrive\Desktop\data__test\output\first_extraction\Yframe_1.png"
+    framey2= r"C:\Users\natal\OneDrive\Desktop\data__test\output\second_extraction\Yframe_1.png"
+    
+    frameu1= r"C:\Users\natal\OneDrive\Desktop\data__test\output\first_extraction\Uframe_1.png"
+    frameu2= r"C:\Users\natal\OneDrive\Desktop\data__test\output\second_extraction\Uframe_1.png"
+    
+    framev1= r"C:\Users\natal\OneDrive\Desktop\data__test\output\first_extraction\frame_1V.png"
+    framev2= r"C:\Users\natal\OneDrive\Desktop\data__test\output\second_extraction\Vframe_1.png"
+    
+    rgb1= r"C:\Users\natal\OneDrive\Desktop\data__test\output\first_extraction\frame_1.png"
+    rgb2= r"C:\Users\natal\OneDrive\Desktop\data__test\output\second_extraction\frame_1.png"
+    
+    
+    
+    
+    # Load images using cv2.imread
+    image_framey1 = cv2.imread(framey1)
+    image_framey2 = cv2.imread(framey2)
+
+    image_frameu1 = cv2.imread(frameu1)
+    image_frameu2 = cv2.imread(frameu2)
+
+    image_framev1 = cv2.imread(framev1)
+    image_framev2 = cv2.imread(framev2)
+
+    image_rgb1 = cv2.imread(rgb1)
+    image_rgb2 = cv2.imread(rgb2)
+    
+    
+    print_pixel_values(image_framey1, "image_framey1")
+    print_pixel_values(image_framey2, "image_framey2")
+
+    print_pixel_values(image_frameu1, "image_frameu1")
+    print_pixel_values(image_frameu2, "image_frameu2")
+
+    print_pixel_values(image_framev1, "image_framev1")
+    print_pixel_values(image_framev2, "image_framev2")
+
+    print_pixel_values(image_rgb1, "image_rgb1")
+    print_pixel_values(image_rgb2, "image_rgb2")
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
 if __name__ == "__main__":
     video_file_path_horse = r"C:\Users\natal\OneDrive\Desktop\data__test\input\horse3s.mp4"
     video_file_path = r"C:\Users\natal\OneDrive\Desktop\data__test\input\DSC_0588.MOV"
@@ -115,4 +192,8 @@ if __name__ == "__main__":
     #one_pixel_to_yuv(pic,x,y)
 
     #keys_test()
-    bin_testtt()
+    #bin_testtt()
+    
+    
+    #video_to_frames_to_video_to_frames()
+    print_all_pixel_values()

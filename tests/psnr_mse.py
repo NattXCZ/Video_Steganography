@@ -1,5 +1,4 @@
 from math import log10, sqrt 
-import cv2 
 import numpy as np 
 
 def PSNR(original, compressed): 

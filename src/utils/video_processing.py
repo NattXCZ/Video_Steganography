@@ -107,7 +107,8 @@ def video_to_yuv_frames(video_path):
         video_path (str): The path to the input video file.
         
     """
-
+    #TODO: možna zde udelat extrakci zvuku?
+    
     if not os.path.exists("./tmp"):
         os.makedirs("tmp")
     temporal_folder="./tmp"
@@ -168,6 +169,7 @@ def video_to_yuv_frames(video_path):
 
 def reconstruct_video_from_rgb_frames(file_path, properties, ffmpeg_path = r".\src\utils\ffmpeg.exe"):
 
+    #! file_path je tady jen skrz zvuk a koncovku
     fps = properties["fps"]
     codec =  decode_fourcc(properties["codec"])
     file_extension =  file_path.rsplit(".", 1)[1]
@@ -179,14 +181,16 @@ def reconstruct_video_from_rgb_frames(file_path, properties, ffmpeg_path = r".\s
         extract_audio_track(file_path)
         
         #recreate video from frames (without audio)
-        call([ffmpeg_path, "-r", str(fps), "-i", "tmp/%d.png" , "-vcodec", str(codec), "-b", str(bitrate),"-crf", "0","-pix_fmt", "yuv420p", f"tmp/video.{file_extension}", "-y"])
-        
+        #call([ffmpeg_path, "-r", str(fps), "-i", "tmp/%d.png" , "-vcodec", str(codec), "-b", str(bitrate),"-crf", "0","-pix_fmt", "yuv420p", f"tmp/video.{file_extension}", "-y"])
+        call([ffmpeg_path, "-r", str(fps), "-i", "frames/frame_%d.png" , "-vcodec", str(codec), "-b", str(bitrate),"-crf", "0","-pix_fmt", "yuv420p", f"tmp/video.{file_extension}", "-y"])
+
         #add audio to a recreated video
         call([ffmpeg_path, "-i", f"tmp/video.{file_extension}", "-i", "tmp/audio.wav","-q:v", "1", "-codec", "copy", f"video.{file_extension}", "-y"])
    
     else:
         #recreate video from frames (without audio)
-        call([ffmpeg_path, "-r", str(fps), "-i", "tmp/%d.png","-q:v", "1", "-vcodec", str(codec), "-b", str(bitrate), "-pix_fmt", "yuv420p", f"video.{file_extension}", "-y"])
+        #call([ffmpeg_path, "-r", str(fps), "-i", "tmp/%d.png","-q:v", "1", "-vcodec", str(codec), "-b", str(bitrate), "-pix_fmt", "yuv420p", f"video.{file_extension}", "-y"])
+        call([ffmpeg_path, "-r", str(fps), "-i", "frames/frame_%d.png","-q:v", "1", "-vcodec", str(codec), "-b", str(bitrate), "-pix_fmt", "yuv420p", f"video.{file_extension}", "-y"])
 
     print("[INFO] reconstruction is finished")
     
