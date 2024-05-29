@@ -421,5 +421,3 @@ def seeded_unshuffle_image(image, seed):
     return unshuffled.reshape(image.shape)
 
 
-
-
