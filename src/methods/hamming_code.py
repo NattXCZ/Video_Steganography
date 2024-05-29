@@ -1,11 +1,12 @@
 import cv2 as cv
-
 import numpy as np
+import random
+
 from src.utils import w_binary as bnr
 from src.utils import video_processing as vid_utils
 from src.utils import bcolors as color
 
-import random
+
 #A Highly Secure Video Steganography using Hamming Code (7, 4)
 
 #have three keys, shared between sender and receiver:
@@ -43,13 +44,19 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key):
     
     
     #*1 + 2)Convert the video stream into individual frames. Separate each frame into its Y (luma), U (chrominance), and V (chrominance) components.
-    vid_properties = vid_utils.video_to_yuv_frames(orig_video_path)
+    vid_properties = vid_utils.video_to_rgb_frames(orig_video_path)
+    
+    vid_utils.create_dirs()
+        
+    for i in range(1, int(vid_properties["frames"]) + 1):
+        image_name = f"frame_{i}.png"
+        vid_utils.rgb2yuv(image_name)
     
 
 
     #max amount of embedded pixels is 22% of all the pixels in frame (4 bits of message per one pixel)
     max_codew_p_frame = int(vid_properties["height"] * vid_properties["width"] + 0.22)
-    #|TODO: co když práva bude krátká a nevyjde na každý frame??
+    #|TODO: co když práva bude krátká a nevyjde na každý frame?? (osetrit ze nebude mensi nez pocet_frames * 4)
     
     
     
@@ -180,12 +187,16 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key):
 
     #*9)Reconstruct the video stream by combining the embedded frames.
 
-    vid_utils.reconstruct_video_from_yuv_frames(orig_video_path, vid_properties)  
-
-    print(f"[INFO] embedding finished")
+    for i in range(1, int(vid_properties["frames"]) + 1):
+        image_name = f"frame_{i}.png"
+        vid_utils.yuv2rgb(image_name)
+        
+    vid_utils.reconstruct_video_from_rgb_frames(orig_video_path,vid_properties)
     
 
-
+    vid_utils.remove_dirs()
+    
+    print(f"[INFO] embedding finished")
     return vid_properties
     
     
@@ -208,7 +219,14 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
     #FIXME: Zkouška bez tvoření noveho videa
     
     
-    #vid_properties = vid_utils.video_to_yuv_frames(stego_video_path)
+    vid_properties = vid_utils.video_to_rgb_frames(stego_video_path)
+    
+    
+    vid_utils.create_dirs()
+        
+    for i in range(1, int(vid_properties["frames"]) + 1):
+        image_name = f"frame_{i}.png"
+        vid_utils.rgb2yuv(image_name)
     
     
     
