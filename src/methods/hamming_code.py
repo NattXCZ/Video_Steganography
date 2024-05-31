@@ -1,3 +1,5 @@
+import os
+
 import cv2 as cv
 import numpy as np
 import random
@@ -40,7 +42,7 @@ xor_key = np.array([1, 1, 1, 0, 0, 1, 1]) #random 7-bit value or number 3 (ale t
 
 
 
-def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key):
+def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,string_flag = False):
     
     
     #*1 + 2)Convert the video stream into individual frames. Separate each frame into its Y (luma), U (chrominance), and V (chrominance) components.
@@ -65,9 +67,16 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key):
     #*3)Shift the position of all pixels in the Y, U, and V components by a specific key.
     
     #*4)Convert the message into a one-dimensional array, and then shift the entire message by a shift_key.
-    message = bnr.file_to_binary_1D_arr(message_path)
-    message = fill_end_zeros(np.roll(message, shift_key))
+    """message = bnr.file_to_binary_1D_arr(message_path)
+    message = fill_end_zeros(np.roll(message, shift_key))"""
     #message = bnr.add_EOT_sequence(message)
+    
+    if string_flag:
+        message = bnr.string_to_binary_array(message_path)
+    else:
+        message = bnr.file_to_binary_1D_arr(message_path)
+    message = fill_end_zeros(np.roll(message, shift_key))
+    
     
     
     #count how much frames will be stored in each frame
@@ -136,15 +145,6 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key):
         v_frame_shuffled[row, col] = int(v_binary_value[:-2] + ''.join(str(bit) for bit in codeword[5:]), 2)
         
         
-        """#FIXME:
-        y_frame_shuffled[row, col] = 255
-        u_frame_shuffled[row, col] = 0
-        v_frame_shuffled[row, col] = 0"""
-
-
-
-
-
 
 
         embedded_codewords_per_frame += 1    #zvyší se pocet vlozenych kodovych slov
@@ -201,7 +201,7 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key):
     
     
 
-def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,message_len, output_path):
+def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,message_len, output_path, string_flag = False):
     
  
     #FIXME: aby nevytvarelo furt novej list
@@ -289,11 +289,6 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
                 v_binary_value = format(v_frame_shuffled[row, col], '#010b')
                 
                 
-                #FIXME:
-                """y_frame[row, col] = 0
-                u_frame[row, col] = 255
-                v_frame[row, col] = 0"""
-
                 
                 #TODO: dopsat aby "vymazalo zprávu - tím že tam doplní samý nuly"
 
@@ -341,9 +336,17 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
     message_array = np.array(decoded_message)
     
     
-    bnr.binary_1D_arr_to_file(np.roll(message_array, - shift_key), output_path)  #proc tady bylo xor_key
+    #*bnr.binary_1D_arr_to_file(np.roll(message_array, - shift_key), output_path)  #proc tady bylo xor_key
 
-
+    output_message = np.roll(message_array, - shift_key)
+    if string_flag:
+        message = bnr.binary_array_to_string(output_message)
+        if os.path.splitext(output_path)[1] == '.txt':
+            write_message_to_file(message,output_path)
+        else:
+            print(f"[DECODED MESSAGE] {message}")
+    else:
+        bnr.binary_1D_arr_to_file(output_message, output_path)  
         
     print(f"[INFO] saved decoded message as {output_path}")
 
@@ -420,4 +423,12 @@ def seeded_unshuffle_image(image, seed):
     
     return unshuffled.reshape(image.shape)
 
+
+
+############
+def write_message_to_file(message, filename):
+    print(f"{color.bcolors.FAIL}{color.bcolors.ENDC}")
+
+    with open(filename, 'w', encoding='utf-8') as file:
+        file.write(message)
 
