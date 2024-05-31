@@ -8,17 +8,22 @@ from src.utils import w_binary as bnr
 from src.utils import video_processing as vid_utils
 from src.utils import bcolors as color
 
+#FIXME: Detekuje jen 1-bit chyby! Což dělá problém když se z videa extrahuje RGB snímek (ten se pak převádí na YUV).
+# To dochází k drobným změnám v pixelech. (někdy se změní hodnota například jen z 162 na 161, z toho někdy z 142 na 138 a pod.)
 
-#A Highly Secure Video Steganography using Hamming Code (7, 4)
 
-#have three keys, shared between sender and receiver:
-#   key_chaotic: Reposition pixels in Y, U, V, and the secret message into a random position, which makes the data chaotic
+
+
+######################################################################################################
+# A Highly Secure Video Steganography using Hamming Code (7, 4)
 #
-#   key_mess1 and key_mess2:
+# have three keys, shared between sender and receiver:
+#   shift_key: Reposition pixels in Y, U, V, and the secret message into a random position, which makes the data chaotic
+#
+#   col_key and row_key:
 #                           Used to pick the random rows and columns respectively in each chaotic Y, U and V component.
 #
 
-#prvnich 20 prvku zpravy [0 1 0 0 1 1 0 0 0 1 1 0 1 1 1 1 0 1 1 1]
 
 # Generator matrix
 G = np.array([[1, 1, 0, 1, 0, 0, 0],
@@ -37,19 +42,19 @@ H_transposed = np.array([[1, 0, 0],
 
 max_bits_per_frame = 22500    #maximum of bits saved in one frame (22500)
 
-xor_key = np.array([1, 1, 1, 0, 0, 1, 1]) #random 7-bit value or number 3 (ale to nevychazi, cisla sou osmbit)
-
+xor_key = np.array([1, 1, 1, 0, 0, 1, 1]) # 7-bit value 
 
 
 
 def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,string_flag = False):
     
     
-    #*1 + 2)Convert the video stream into individual frames. Separate each frame into its Y (luma), U (chrominance), and V (chrominance) components.
+    #* 1 + 2)Convert the video stream into individual frames. Separate each frame into its Y (luma), U (chrominance), and V (chrominance) components.
     vid_properties = vid_utils.video_to_rgb_frames(orig_video_path)
     
     vid_utils.create_dirs()
         
+    #extracting and saving Y,U,V components    
     for i in range(1, int(vid_properties["frames"]) + 1):
         image_name = f"frame_{i}.png"
         vid_utils.rgb2yuv(image_name)
@@ -64,11 +69,11 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
     
     
     
-    #*3)Shift the position of all pixels in the Y, U, and V components by a specific key.
+    #* 3)Shift the position of all pixels in the Y, U, and V components by a specific key.
     
-    #*4)Convert the message into a one-dimensional array, and then shift the entire message by a shift_key.
-    """message = bnr.file_to_binary_1D_arr(message_path)
-    message = fill_end_zeros(np.roll(message, shift_key))"""
+    #* 4)Convert the message into a one-dimensional array, and then shift the entire message by a shift_key.
+    #message = bnr.file_to_binary_1D_arr(message_path)
+    #message = fill_end_zeros(np.roll(message, shift_key))
     #message = bnr.add_EOT_sequence(message)
     
     if string_flag:
@@ -89,7 +94,7 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
     
     actual_max_codew = codew_p_frame
     
-    #*5)Encode each 4-bit block of the message using a Hamming (7, 4) code.
+    #* 5)Encode each 4-bit block of the message using a Hamming (7, 4) code.
     row = 0
     col = 0
     embedded_codewords_per_frame = 0
@@ -104,14 +109,12 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
 
 
 
-        #*6)XOR the resulting 7-bit encoded data (4 message bits + 3 parity bits) with a random 7-bit value using a key.
+        #* 6)XOR the resulting 7-bit encoded data (4 message bits + 3 parity bits) with a random 7-bit value using a key.
         codeword = codeword ^ xor_key 
 
 
+        #* 7)Embed the resulting 7 bits into one pixel of the YUV components (3 bits in Y, 2 bits in U, and 2 bits in V).
 
-        #*7)Embed the resulting 7 bits into one pixel of the YUV components (3 bits in Y, 2 bits in U, and 2 bits in V).
-
-        #initialize new frames
         if embedded_codewords_per_frame == 0:
             y_component_path = f"./tmp/Y/frame_{curr_frame}.png"
             u_component_path = f"./tmp/U/frame_{curr_frame}.png"
@@ -128,11 +131,6 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
             row = 0
             col = 0
             
-
-        #FIXME:oboje bin() i format vraci string - nemelo by delat problemy
-        """y_binary_value = bin(y_frame_shuffled[row, col])
-        u_binary_value = bin(u_frame_shuffled[row, col])
-        v_binary_value = bin(v_frame_shuffled[row, col])"""
         
         y_binary_value = format(y_frame_shuffled[row, col], '#010b')
         u_binary_value = format(u_frame_shuffled[row, col], '#010b')
@@ -145,21 +143,18 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
         v_frame_shuffled[row, col] = int(v_binary_value[:-2] + ''.join(str(bit) for bit in codeword[5:]), 2)
         
         
-
-
-        embedded_codewords_per_frame += 1    #zvyší se pocet vlozenych kodovych slov
+        embedded_codewords_per_frame += 1 
+        
         # Update row and col after processing a pixel
         col += 1
-        if col >= int(vid_properties["width"]):  # Reached end of current row (in enery YUV frame it is a same value)
+        if col >= int(vid_properties["width"]):  # Reached end of current row
             col = 0
             row += 1
             
-        if embedded_codewords_per_frame >= actual_max_codew:  # Pokud je pozice větší než délka zprávy, přejdi na další snímek
+        if embedded_codewords_per_frame >= actual_max_codew:
             curr_frame += 1
             embedded_codewords_per_frame = 0
-            #ulozeni frames
-            
-            
+
             
             y_frame = seeded_unshuffle_image(y_frame_shuffled, shift_key)
             u_frame = seeded_unshuffle_image(u_frame_shuffled, shift_key)
@@ -174,7 +169,7 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
 
         
 
-    #FIXME: proc to je tady tak
+    #FIXME:
     if embedded_codewords_per_frame > 0:
         #ulozeni frames pokud se neulozilo kdyz bylo embedded_codewords_per_frame == 0
         cv.imwrite(y_component_path, y_frame)
@@ -182,10 +177,10 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
         cv.imwrite(v_component_path, v_frame)
 
     print(f"[INFO] encoded to frames")
-    #*8)Shift the positions of all pixels in the YUV components back to their original positions in the frame pixel grid.
+    #* 8)Shift the positions of all pixels in the YUV components back to their original positions in the frame pixel grid.
 
 
-    #*9)Reconstruct the video stream by combining the embedded frames.
+    #* 9)Reconstruct the video stream by combining the embedded frames.
 
     for i in range(1, int(vid_properties["frames"]) + 1):
         image_name = f"frame_{i}.png"
@@ -204,26 +199,27 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
 def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,message_len, output_path, string_flag = False):
     
  
-    #FIXME: aby nevytvarelo furt novej list
+    #FIXME: list?
     decoded_message = []
+    
+    #zname delku tak:
     #decoded_message = np.zeros(message_len, dtype = np.uint8)
     
     
     codeword_chaos = np.array([0, 0, 0, 0, 0, 0, 0])
     
     
-    decoded_codeword = []   
+    #decoded_codeword = [] 
+    decoded_codeword = np.array([0, 0, 0, 0])  
 
-    # 1) Convert the video stream into frames. Separate each frame into Y, U and V components.
+    #* 1) Convert the video stream into frames. Separate each frame into Y, U and V components.
 
-    #FIXME: Zkouška bez tvoření noveho videa
-    
-    
     vid_properties = vid_utils.video_to_rgb_frames(stego_video_path)
     
     
     vid_utils.create_dirs()
         
+    #extracting and saving Y,U,V components    
     for i in range(1, int(vid_properties["frames"]) + 1):
         image_name = f"frame_{i}.png"
         vid_utils.rgb2yuv(image_name)
@@ -234,18 +230,12 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
     
     actual_max_codew = codew_p_frame
 
-    # 3) Change the position of all pixel values in the three Y, U, and V components by the special key that was used in the embedding process.
+    #* 3 + 4) Change the position of all pixel values in the three Y, U, and V components by the special key that was used in the embedding process.
+    #* Obtain the encoded data from the YUV components and XOR with the random number using the same key that was used in the sender side.
+    #* Reposition the whole message again into the original order.
 
 
-    # 4) Obtain the encoded data from the YUV components and XOR with the random number using the same key that was used in the sender side.
-
-    #v cyklu projit secky frames dokud nenajdu končnou sekvenci (az najde prvni ze sekvence, zvysi citatc na 1, esi najde druhy zvysi o jedno vic 
-    #pokud neco sekvenci pokazi tak nenajde tak jej da na nulu  aznova jede)
-    # v kazdem pixelu snimnku odkoduje slovo a to hned dekoduje a ulozi do odpovedi , asi ty kontrolni sekvence pridat jeste pred kodovanim 
-
-
-
-    for curr_frame in range(1, int(vid_properties["frames"]) + 1): #bere od 1 - frames
+    for curr_frame in range(1, int(vid_properties["frames"]) + 1):
         embedded_codewords = 0
 
         #load new frame
@@ -267,30 +257,24 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
             actual_max_codew = codew_p_last_frame
 
         stop_loop = False
-        #for row in range(1, int(vid_properties["height"])):
+
         for row in range(int(vid_properties["height"])):
             if stop_loop:
                 break
             
-            #for col in range(1, int(vid_properties["width"])):
             for col in range(int(vid_properties["width"])):
 
-                if embedded_codewords >= actual_max_codew:    # esi vlozi tolik slov kolik ma tak se presune na další frame
+                if embedded_codewords >= actual_max_codew: 
                     stop_loop = True
                     break
                 
-
-                """y_binary_value = bin(y_frame_shuffled[row, col])
-                u_binary_value = bin(u_frame_shuffled[row, col])
-                v_binary_value = bin(v_frame_shuffled[row, col])"""
                 
                 y_binary_value = format(y_frame_shuffled[row, col], '#010b')
                 u_binary_value = format(u_frame_shuffled[row, col], '#010b')
                 v_binary_value = format(v_frame_shuffled[row, col], '#010b')
                 
                 
-                
-                #TODO: dopsat aby "vymazalo zprávu - tím že tam doplní samý nuly"
+            
 
                 codeword_chaos[0] = y_binary_value[-3]
                 codeword_chaos[1] = y_binary_value[-2]
@@ -304,9 +288,8 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
 
 
 
-                
 
-                codeword = codeword_chaos ^ xor_key           #2 times XOR returns original codeword
+                codeword = codeword_chaos ^ xor_key           #2x times XOR returns original codeword
                 
                 decoded_codeword = hamming_decode_codeword(codeword, H_transposed)
                 decoded_message.extend(decoded_codeword)
@@ -316,9 +299,7 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
                 
                 
                 
-        """cv.imwrite(y_component_path, y_frame)
-        cv.imwrite(u_component_path, u_frame)
-        cv.imwrite(v_component_path, v_frame)"""
+        #end of proceesing frame
         
       
         
@@ -328,27 +309,27 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
 
 
 
-    # 6) Reposition the whole message again into the original order.
 
 
-    # 7) Return converted message (and convert it as a text file or find which file it was)
-    # tady je jen azchytnej bod kdy ulozi to co nasel a vrati ze zpravu neslo dekodovat
+
+    #* 7) Return converted message (and convert it as a text file or find which file it was)
+
     message_array = np.array(decoded_message)
     
     
-    #*bnr.binary_1D_arr_to_file(np.roll(message_array, - shift_key), output_path)  #proc tady bylo xor_key
+    #bnr.binary_1D_arr_to_file(np.roll(message_array, - shift_key), output_path) 
 
     output_message = np.roll(message_array, - shift_key)
     if string_flag:
         message = bnr.binary_array_to_string(output_message)
         if os.path.splitext(output_path)[1] == '.txt':
             write_message_to_file(message,output_path)
+            print(f"[INFO] saved decoded message as {output_path}")
         else:
             print(f"[DECODED MESSAGE] {message}")
     else:
         bnr.binary_1D_arr_to_file(output_message, output_path)  
-        
-    print(f"[INFO] saved decoded message as {output_path}")
+        print(f"[INFO] saved decoded message as {output_path}")
 
 
 
@@ -369,11 +350,10 @@ def hamming_decode_codeword(codeword, H_transposed):
         R[index] = 1 - R[index]
 
     #return first four bits
-    return R[-4:]    #TODO proc je tam *-4 kdyz bez minuska necha to stejny
+    return R[-4:]
 
 
 ##################
-#helper methods
 def fill_end_zeros(input_array):
     length = len(input_array)
 
@@ -386,14 +366,13 @@ def fill_end_zeros(input_array):
         return adjusted_array
     
 def distribution_of_bits_between_frames(len_message, frame_count):
-  codew_in_msg = len_message // 4  # Celkový počet slov (děleno 4 bity na slovo)
+  codew_in_msg = len_message // 4  # total number of words (divided by 4 bits per word)
 
   codew_p_frame, tail = divmod(codew_in_msg, frame_count)
 
   return codew_p_frame, codew_p_frame + tail
 
 
-##############
 #shuffle
 def seeded_shuffle_image(image, seed):
     rng = random.Random(seed)
@@ -405,6 +384,7 @@ def seeded_shuffle_image(image, seed):
         flattened[i], flattened[j] = flattened[j], flattened[i]
     
     return flattened.reshape(image.shape)
+
 
 def seeded_unshuffle_image(image, seed):
     rng = random.Random(seed)
@@ -424,8 +404,7 @@ def seeded_unshuffle_image(image, seed):
     return unshuffled.reshape(image.shape)
 
 
-
-############
+#write message string
 def write_message_to_file(message, filename):
     print(f"{color.bcolors.FAIL}{color.bcolors.ENDC}")
 
