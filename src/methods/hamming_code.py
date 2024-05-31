@@ -26,19 +26,23 @@ from src.utils import bcolors as color
 
 
 # Generator matrix
-G = np.array([[1, 1, 0, 1, 0, 0, 0],
-            [0, 1, 1, 0, 1, 0, 0],
-            [1, 1, 1, 0, 0, 1, 0],
-            [1, 0, 1, 0, 0, 0, 1]])
+G = np.array([
+    [1, 1, 0, 1, 0, 0, 0],
+    [0, 1, 1, 0, 1, 0, 0],
+    [1, 1, 1, 0, 0, 1, 0],
+    [1, 0, 1, 0, 0, 0, 1]
+])
 
 
-H_transposed = np.array([[1, 0, 0],
-                    [0, 1, 0],
-                    [0, 0, 1],
-                    [1, 1, 0],
-                    [0, 1, 1],
-                    [1, 1, 1],
-                    [1, 0, 1]])
+H_transposed = np.array([
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+    [1, 1, 0],
+    [0, 1, 1],
+    [1, 1, 1],
+    [1, 0, 1]
+])
 
 max_bits_per_frame = 22500    #maximum of bits saved in one frame (22500)
 
