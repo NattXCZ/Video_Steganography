@@ -1,16 +1,15 @@
 import os
 import shutil
+from subprocess import run ,call ,STDOUT ,PIPE
+
 import cv2
 import numpy as np
-from subprocess import run ,call ,STDOUT ,PIPE
 
 temporal_folder = "./tmp"
 y_folder = "./tmp/Y"
 u_folder = "./tmp/U"
 v_folder = "./tmp/V"
 rgb_folder = "./frames"
-
-
 
 def decode_fourcc(cc):
     """
@@ -35,7 +34,7 @@ def delete_tmp(path="./tmp"):
 
 
 def has_audio_track(filename, ffprobe_path=r".\src\utils\ffprobe.exe"):
-    """Check if the given video file contains audio streams."""
+    """Check if the given video file contains audio stream."""
     result = run([ffprobe_path, "-loglevel", "error", "-show_entries",
                              "stream=codec_type", "-of", "csv=p=0", filename],
                             stdout=PIPE,
@@ -64,14 +63,7 @@ def extract_audio_track(video_file, ffmpeg_path = r".\src\utils\ffmpeg.exe"):
 
 
 def video_to_rgb_frames(video_path):
-    """
-    Extracts frames from a video file and saves them as individual image files into "tmp" folder.
-    Save as .png files.
-
-    Args:
-        video_path (str): The path to the input video file.
-        
-    """
+    """Extracts frames from a video file and saves them as individual image files into "/frames" folder. Save as .png files."""
     if not os.path.exists("./frames"):
         os.makedirs("frames")
     temporal_folder="./frames"
@@ -82,6 +74,7 @@ def video_to_rgb_frames(video_path):
     if not capture.isOpened():
         print("Error: Video file cannot be opened!")
         return
+
 
     video_properties = {
         "format": capture.get(cv2.CAP_PROP_FORMAT),
@@ -103,20 +96,14 @@ def video_to_rgb_frames(video_path):
 
     capture.release()
 
+
     print("[INFO] extraction finished")
     return video_properties
 
 
 def video_to_yuv_frames(video_path):
-    """
-    Extracts frames from a video file and saves them as individual image files into "tmp"folder.
+    """Extracts frames from a video file and saves them as individual image files into "tmp" folder."""
 
-    Args:
-        video_path (str): The path to the input video file.
-        
-    """
-    #TODO: možna zde udelat extrakci zvuku?
-    
     if not os.path.exists("./tmp"):
         os.makedirs("tmp")
     temporal_folder="./tmp"
@@ -177,8 +164,9 @@ def video_to_yuv_frames(video_path):
     print("[INFO] extraction finished")
     return video_properties
 
-def reconstruct_video_from_rgb_frames(file_path, properties, ffmpeg_path = r".\src\utils\ffmpeg.exe"):
 
+def reconstruct_video_from_rgb_frames(file_path, properties, ffmpeg_path = r".\src\utils\ffmpeg.exe"):
+    """Reconstruct video from RGB frames with ffmpeg."""
     fps = properties["fps"]
     codec =  decode_fourcc(properties["codec"])
     #file_extension =  file_path.rsplit(".", 1)[1]
@@ -203,23 +191,13 @@ def reconstruct_video_from_rgb_frames(file_path, properties, ffmpeg_path = r".\s
     
 
 def merge_yuv_to_rgb(y_folder, u_folder, v_folder, output_folder):
-    """
-    Creates PNG frames by combining corresponding Y, U, and V frames.
-
-    Args:
-        y_folder (str): Path to the folder containing Y frames.
-        u_folder (str): Path to the folder containing U frames.
-        v_folder (str): Path to the folder containing V frames.
-        output_folder (str): Path to the output folder where combined frames will be saved.
-
-    Returns:
-        None
-    """
+    """Creates PNG frames by combining corresponding Y, U, and V frames. """
     os.makedirs(output_folder, exist_ok=True)
 
     y_files = sorted(os.listdir(y_folder))
     u_files = sorted(os.listdir(u_folder))
     v_files = sorted(os.listdir(v_folder))
+
 
     for y_file, u_file, v_file in zip(y_files, u_files, v_files):
         y_frame = cv2.imread(os.path.join(y_folder, y_file), cv2.IMREAD_GRAYSCALE)
@@ -236,15 +214,13 @@ def merge_yuv_to_rgb(y_folder, u_folder, v_folder, output_folder):
         frame_name = os.path.splitext(y_file)[0] + ".png"
         cv2.imwrite(os.path.join(output_folder, frame_name), rgb_frame)
         
+        
     print("[INFO] frames are merged")
         
+        
 def reconstruct_video_from_yuv_frames(file_path, properties, ffmpeg_path = r".\src\utils\ffmpeg.exe"):
-    y_folder = "./tmp/Y"
-    u_folder = "./tmp/U"
-    v_folder = "./tmp/V"
-    output_folder = "./frames"
     
-    merge_yuv_to_rgb(y_folder, u_folder, v_folder, output_folder)
+    merge_yuv_to_rgb(y_folder, u_folder, v_folder, rgb_folder)
     
     reconstruct_video_from_rgb_frames(file_path, properties, ffmpeg_path)
     
@@ -252,7 +228,6 @@ def reconstruct_video_from_yuv_frames(file_path, properties, ffmpeg_path = r".\s
     
     
 def rgb2yuv(image_name):
-    # Load the RGB image
     frame_path = os.path.join(rgb_folder, image_name)
     rgb_image = cv2.imread(frame_path)
     
@@ -268,7 +243,7 @@ def rgb2yuv(image_name):
     U = yuv_image[:, :, 1]
     V = yuv_image[:, :, 2]
 
-    # Save each channel as a separate image
+
     y_path = os.path.join(y_folder, image_name)
     u_path = os.path.join(u_folder, image_name)
     v_path = os.path.join(v_folder, image_name)
@@ -279,7 +254,6 @@ def rgb2yuv(image_name):
 
 
 def yuv2rgb(image_name):
-    # Load the 3 separate images
     y_path = os.path.join(y_folder, image_name)
     u_path = os.path.join(u_folder, image_name)
     v_path = os.path.join(v_folder, image_name)
@@ -294,18 +268,16 @@ def yuv2rgb(image_name):
 
     yuv_image = np.stack((Y, U, V), axis=-1)
 
-    # Convert YUV image to RGB
+
     rgb_image = cv2.cvtColor(yuv_image, cv2.COLOR_YCrCb2RGB)
     #rgb_image = cv2.cvtColor(yuv_image, cv2.COLOR_YUV2RGB)
 
-    # Save the reversed RGB image in the appropriate folder
     rgb_path = os.path.join(rgb_folder, image_name)
     cv2.imwrite(rgb_path, rgb_image)
     
     
-    
-    
 def create_dirs():
+    """Create necessary directories."""
     if not os.path.exists(temporal_folder):
         os.makedirs("tmp")
         
@@ -319,6 +291,7 @@ def create_dirs():
     
     
 def remove_dirs():
+    """Remove temporary directories."""
     if os.path.exists(temporal_folder):
         shutil.rmtree(temporal_folder)
         print(f"[INFO] Removed {temporal_folder} and its subdirectories.")
@@ -331,15 +304,5 @@ def remove_dirs():
         print(f"[INFO] Removed {rgb_folder}.")
     else:
         print(f"[INFO] {rgb_folder} does not exist.")
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         
         

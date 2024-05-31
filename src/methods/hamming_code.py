@@ -45,37 +45,27 @@ H_transposed = np.array([
 ])
 
 max_bits_per_frame = 22500    #maximum of bits saved in one frame (22500)
-
 xor_key = np.array([1, 1, 1, 0, 0, 1, 1]) # 7-bit value 
 
 
-
 def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,string_flag = False):
-    
-    
-    #* 1 + 2)Convert the video stream into individual frames. Separate each frame into its Y (luma), U (chrominance), and V (chrominance) components.
+     
+    #* Convert the video stream into individual frames. Separate each frame into its Y (luma), U (chrominance), and V (chrominance) components.
     vid_properties = vid_utils.video_to_rgb_frames(orig_video_path)
-    
     vid_utils.create_dirs()
         
-    #extracting and saving Y,U,V components    
+        
+    # extracting and saving Y,U,V components    
     for i in range(1, int(vid_properties["frames"]) + 1):
         image_name = f"frame_{i}.png"
         vid_utils.rgb2yuv(image_name)
     
 
-
-    #max amount of embedded pixels is 22% of all the pixels in frame (4 bits of message per one pixel)
+    # max amount of embedded pixels is 22% of all the pixels in frame (4 bits of message per one pixel)
     max_codew_p_frame = int(vid_properties["height"] * vid_properties["width"] + 0.22)
-    #|TODO: co když práva bude krátká a nevyjde na každý frame?? (osetrit ze nebude mensi nez pocet_frames * 4)
     
     
-    
-    
-    
-    #* 3)Shift the position of all pixels in the Y, U, and V components by a specific key.
-    
-    #* 4)Convert the message into a one-dimensional array, and then shift the entire message by a shift_key.
+    #* Convert the message into a one-dimensional array, and then shift the entire message by a shift_key.
     #message = bnr.file_to_binary_1D_arr(message_path)
     #message = fill_end_zeros(np.roll(message, shift_key))
     #message = bnr.add_EOT_sequence(message)
@@ -88,7 +78,7 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
     
     
     
-    #count how much frames will be stored in each frame
+    # Count how much frames will be stored in each frame
     codew_p_frame, codew_p_last_frame =  distribution_of_bits_between_frames(len(message),vid_properties["frames"])
     
     
@@ -98,7 +88,8 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
     
     actual_max_codew = codew_p_frame
     
-    #* 5)Encode each 4-bit block of the message using a Hamming (7, 4) code.
+    
+    #* Encode each 4-bit block of the message using a Hamming (7, 4) code.
     row = 0
     col = 0
     embedded_codewords_per_frame = 0
@@ -107,18 +98,15 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
     for i in range(0, len(message), 4):
         four_bits = message[i:i+4]
 
-        
-        #create codeword (Hamming code (7,4))
+        # Create codeword (Hamming code (7,4))
         codeword = (np.dot(four_bits, G) % 2)
 
 
-
-        #* 6)XOR the resulting 7-bit encoded data (4 message bits + 3 parity bits) with a random 7-bit value using a key.
+        #* XOR the resulting 7-bit encoded data (4 message bits + 3 parity bits) with a random 7-bit value using a key.
         codeword = codeword ^ xor_key 
 
 
-        #* 7)Embed the resulting 7 bits into one pixel of the YUV components (3 bits in Y, 2 bits in U, and 2 bits in V).
-
+        #* Embed the resulting 7 bits into one pixel of the YUV components (3 bits in Y, 2 bits in U, and 2 bits in V).
         if embedded_codewords_per_frame == 0:
             y_component_path = f"./tmp/Y/frame_{curr_frame}.png"
             u_component_path = f"./tmp/U/frame_{curr_frame}.png"
@@ -128,6 +116,7 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
             u_frame = cv.imread(u_component_path, cv.IMREAD_GRAYSCALE)
             v_frame = cv.imread(v_component_path, cv.IMREAD_GRAYSCALE)
             
+            #* Shift the position of all pixels in the Y, U, and V components by a specific key.
             y_frame_shuffled = seeded_shuffle_image(y_frame, shift_key)
             u_frame_shuffled = seeded_shuffle_image(u_frame, shift_key)
             v_frame_shuffled = seeded_shuffle_image(v_frame, shift_key)
@@ -141,7 +130,7 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
         v_binary_value = format(v_frame_shuffled[row, col], '#010b')
 
 
-        #embed bits of codeword
+        # Embed bits of codeword
         y_frame_shuffled[row, col] = int(y_binary_value[:-3] + ''.join(str(bit) for bit in codeword[:3]), 2)
         u_frame_shuffled[row, col] = int(u_binary_value[:-2] + ''.join(str(bit) for bit in codeword[3:5]), 2)
         v_frame_shuffled[row, col] = int(v_binary_value[:-2] + ''.join(str(bit) for bit in codeword[5:]), 2)
@@ -158,8 +147,8 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
         if embedded_codewords_per_frame >= actual_max_codew:
             curr_frame += 1
             embedded_codewords_per_frame = 0
-
             
+            # Shift the positions of all pixels in the YUV components back to their original positions in the frame pixel grid.
             y_frame = seeded_unshuffle_image(y_frame_shuffled, shift_key)
             u_frame = seeded_unshuffle_image(u_frame_shuffled, shift_key)
             v_frame = seeded_unshuffle_image(v_frame_shuffled, shift_key)
@@ -168,6 +157,7 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
             cv.imwrite(u_component_path, u_frame)
             cv.imwrite(v_component_path, v_frame)
                 
+                
             if curr_frame == vid_properties["frames"]:
                 actual_max_codew = codew_p_last_frame
 
@@ -175,17 +165,15 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
 
     #FIXME:
     if embedded_codewords_per_frame > 0:
-        #ulozeni frames pokud se neulozilo kdyz bylo embedded_codewords_per_frame == 0
         cv.imwrite(y_component_path, y_frame)
         cv.imwrite(u_component_path, u_frame)
         cv.imwrite(v_component_path, v_frame)
 
     print(f"[INFO] encoded to frames")
-    #* 8)Shift the positions of all pixels in the YUV components back to their original positions in the frame pixel grid.
+    
 
 
-    #* 9)Reconstruct the video stream by combining the embedded frames.
-
+    #* Reconstruct the video stream by combining the embedded frames
     for i in range(1, int(vid_properties["frames"]) + 1):
         image_name = f"frame_{i}.png"
         vid_utils.yuv2rgb(image_name)
@@ -201,8 +189,6 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
     
 
 def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,message_len, output_path, string_flag = False):
-    
- 
     #FIXME: list?
     decoded_message = []
     
@@ -211,33 +197,21 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
     
     
     codeword_chaos = np.array([0, 0, 0, 0, 0, 0, 0])
-    
-    
     #decoded_codeword = [] 
     decoded_codeword = np.array([0, 0, 0, 0])  
 
-    #* 1) Convert the video stream into frames. Separate each frame into Y, U and V components.
-
+    #* Convert the video stream into frames. Separate each frame into Y, U and V components.
     vid_properties = vid_utils.video_to_rgb_frames(stego_video_path)
-    
-    
     vid_utils.create_dirs()
         
-    #extracting and saving Y,U,V components    
+    # Etracting and saving Y,U,V components    
     for i in range(1, int(vid_properties["frames"]) + 1):
         image_name = f"frame_{i}.png"
         vid_utils.rgb2yuv(image_name)
     
     
-    
     codew_p_frame, codew_p_last_frame =  distribution_of_bits_between_frames(message_len,vid_properties["frames"])
-    
     actual_max_codew = codew_p_frame
-
-    #* 3 + 4) Change the position of all pixel values in the three Y, U, and V components by the special key that was used in the embedding process.
-    #* Obtain the encoded data from the YUV components and XOR with the random number using the same key that was used in the sender side.
-    #* Reposition the whole message again into the original order.
-
 
     for curr_frame in range(1, int(vid_properties["frames"]) + 1):
         embedded_codewords = 0
@@ -251,6 +225,7 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
         u_frame = cv.imread(u_component_path, cv.IMREAD_GRAYSCALE)
         v_frame = cv.imread(v_component_path, cv.IMREAD_GRAYSCALE)
         
+        #* Change the position of all pixel values in the three Y, U, and V components by the special key that was used in the embedding process.
         y_frame_shuffled = seeded_shuffle_image(y_frame, shift_key)
         u_frame_shuffled = seeded_shuffle_image(u_frame, shift_key)
         v_frame_shuffled = seeded_shuffle_image(v_frame, shift_key)
@@ -272,7 +247,7 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
                     stop_loop = True
                     break
                 
-                
+                #* Obtain the encoded data from the YUV components and XOR with the random number using the same key that was used in the sender side.
                 y_binary_value = format(y_frame_shuffled[row, col], '#010b')
                 u_binary_value = format(u_frame_shuffled[row, col], '#010b')
                 v_binary_value = format(v_frame_shuffled[row, col], '#010b')
@@ -291,9 +266,8 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
                 codeword_chaos[6] = v_binary_value[-1]
 
 
-
-
                 codeword = codeword_chaos ^ xor_key           #2x times XOR returns original codeword
+                
                 
                 decoded_codeword = hamming_decode_codeword(codeword, H_transposed)
                 decoded_message.extend(decoded_codeword)
@@ -303,27 +277,15 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
                 
                 
                 
-        #end of proceesing frame
+        #end of proceesing current frame
         
-      
-        
-
-
-
-
-
-
-
-
-
-    #* 7) Return converted message (and convert it as a text file or find which file it was)
-
     message_array = np.array(decoded_message)
     
     
-    #bnr.binary_1D_arr_to_file(np.roll(message_array, - shift_key), output_path) 
-
+    #* Reposition the whole message again into the original order.
     output_message = np.roll(message_array, - shift_key)
+    #bnr.binary_1D_arr_to_file(np.roll(message_array, - shift_key), output_path) 
+    
     if string_flag:
         message = bnr.binary_array_to_string(output_message)
         if os.path.splitext(output_path)[1] == '.txt':
