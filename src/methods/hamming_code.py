@@ -331,7 +331,7 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
         bnr.binary_1D_arr_to_file(output_message, output_path)  
         print(f"[INFO] saved decoded message as {output_path}")
 
-
+    vid_utils.remove_dirs()
 
 def hamming_decode_codeword(codeword, H_transposed):
 

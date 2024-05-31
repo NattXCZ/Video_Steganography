@@ -72,7 +72,6 @@ def video_to_rgb_frames(video_path):
         video_path (str): The path to the input video file.
         
     """
-    #!tady bylo driv tmp
     if not os.path.exists("./frames"):
         os.makedirs("frames")
     temporal_folder="./frames"
@@ -100,9 +99,6 @@ def video_to_rgb_frames(video_path):
         if frame is None:
             break
         frame_count += 1
-
-        #f"frame_{frame_count:04d}.png"
-        #! tady byla změna v názvu
         cv2.imwrite(os.path.join(temporal_folder, f"frame_{frame_count}.png"), frame)
 
     capture.release()
@@ -151,13 +147,10 @@ def video_to_yuv_frames(video_path):
             break
         frame_count += 1
 
-        #f"frame_{frame_count:04d}.png"
-        #! tady byla změna v názvu
+
         frame_name = f"frame_{frame_count}.png"
       
         # Split frame into YUV components
-        #!zmeneno z BGR na RGB
-        #YUV_frame = cv2.cvtColor(frame, cv2.COLOR_BRG2YUV)
         #YUV_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2YUV)
         YUV_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2YCrCb)
         
@@ -186,21 +179,17 @@ def video_to_yuv_frames(video_path):
 
 def reconstruct_video_from_rgb_frames(file_path, properties, ffmpeg_path = r".\src\utils\ffmpeg.exe"):
 
-    #! file_path je tady jen skrz zvuk a koncovku
     fps = properties["fps"]
     codec =  decode_fourcc(properties["codec"])
-    #!file_extension =  file_path.rsplit(".", 1)[1]
-    #FIXME:
+    #file_extension =  file_path.rsplit(".", 1)[1]
     file_extension = "avi"
     bitrate = get_vid_stream_bitrate(file_path)
 
     if has_audio_track(file_path):
         #extract audio stream from video
-        #call([ffmpeg_path, "-i", file_path, "-aq", "0", "-map", "a", "tmp/audio.wav"]) 
         extract_audio_track(file_path)
         
         #recreate video from frames (without audio)
-        #call([ffmpeg_path, "-r", str(fps), "-i", "tmp/%d.png" , "-vcodec", str(codec), "-b", str(bitrate),"-crf", "0","-pix_fmt", "yuv420p", f"tmp/video.{file_extension}", "-y"])
         call([ffmpeg_path, "-r", str(fps), "-i", "frames/frame_%d.png" , "-vcodec", str(codec), "-b", str(bitrate),"-crf", "0","-pix_fmt", "yuv420p", f"tmp/video.{file_extension}", "-y"])
 
         #add audio to a recreated video
@@ -208,7 +197,6 @@ def reconstruct_video_from_rgb_frames(file_path, properties, ffmpeg_path = r".\s
    
     else:
         #recreate video from frames (without audio)
-        #call([ffmpeg_path, "-r", str(fps), "-i", "tmp/%d.png","-q:v", "1", "-vcodec", str(codec), "-b", str(bitrate), "-pix_fmt", "yuv420p", f"video.{file_extension}", "-y"])
         call([ffmpeg_path, "-r", str(fps), "-i", "frames/frame_%d.png","-q:v", "1", "-vcodec", str(codec), "-b", str(bitrate), "-pix_fmt", "yuv420p", f"video.{file_extension}", "-y"])
 
     print("[INFO] reconstruction is finished")
@@ -242,8 +230,6 @@ def merge_yuv_to_rgb(y_folder, u_folder, v_folder, output_folder):
         yuv_frame = cv2.merge([y_frame, u_frame, v_frame])
 
         # from YUV to RGB
-        #!zmeneno z BGR na RGB
-        #rgb_frame = cv2.cvtColor(yuv_frame, cv2.COLOR_YUV2BGR)
         #rgb_frame = cv2.cvtColor(yuv_frame, cv2.COLOR_YUV2RGB)
         rgb_frame = cv2.cvtColor(yuv_frame, cv2.COLOR_YCrCb2RGB)
         
@@ -265,15 +251,13 @@ def reconstruct_video_from_yuv_frames(file_path, properties, ffmpeg_path = r".\s
     print("[INFO] video is reconstructed")
     
     
-    
-    
 def rgb2yuv(image_name):
     # Load the RGB image
     frame_path = os.path.join(rgb_folder, image_name)
     rgb_image = cv2.imread(frame_path)
     
     if rgb_image is None:
-        print(f"Error: Unable to load image {frame_path}")
+        print(f"Error: Unable to load {frame_path}")
         return
     
     yuv_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2YCrCb)
@@ -293,6 +277,7 @@ def rgb2yuv(image_name):
     cv2.imwrite(u_path, U)
     cv2.imwrite(v_path, V)
 
+
 def yuv2rgb(image_name):
     # Load the 3 separate images
     y_path = os.path.join(y_folder, image_name)
@@ -304,7 +289,7 @@ def yuv2rgb(image_name):
     V = cv2.imread(v_path, cv2.IMREAD_GRAYSCALE)
     
     if Y is None or U is None or V is None:
-        print(f"Error: Unable to load one or more YUV images for {image_name}")
+        print(f"Error: Unable to load components for {image_name}")
         return
 
     yuv_image = np.stack((Y, U, V), axis=-1)
@@ -346,3 +331,15 @@ def remove_dirs():
         print(f"[INFO] Removed {rgb_folder}.")
     else:
         print(f"[INFO] {rgb_folder} does not exist.")
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
