@@ -48,8 +48,8 @@ max_bits_per_frame = 22500    #maximum of bits saved in one frame (22500)
 xor_key = np.array([1, 1, 1, 0, 0, 1, 1]) # 7-bit value 
 
 
-def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,string_flag = False):
-     
+def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key, string_flag = False, shuffle_flag = True, flag_delete_dirs = True):
+   
     #* Convert the video stream into individual frames. Separate each frame into its Y (luma), U (chrominance), and V (chrominance) components.
     vid_properties = vid_utils.video_to_rgb_frames(orig_video_path)
     vid_utils.create_dirs()
@@ -116,10 +116,15 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
             u_frame = cv.imread(u_component_path, cv.IMREAD_GRAYSCALE)
             v_frame = cv.imread(v_component_path, cv.IMREAD_GRAYSCALE)
             
-            #* Shift the position of all pixels in the Y, U, and V components by a specific key.
-            y_frame_shuffled = seeded_shuffle_image(y_frame, shift_key)
-            u_frame_shuffled = seeded_shuffle_image(u_frame, shift_key)
-            v_frame_shuffled = seeded_shuffle_image(v_frame, shift_key)
+            if shuffle_flag:
+                #* Shift the position of all pixels in the Y, U, and V components by a specific key.
+                y_frame_shuffled = seeded_shuffle_image(y_frame, shift_key)
+                u_frame_shuffled = seeded_shuffle_image(u_frame, shift_key)
+                v_frame_shuffled = seeded_shuffle_image(v_frame, shift_key)
+            else:
+                y_frame_shuffled = y_frame
+                u_frame_shuffled = u_frame
+                v_frame_shuffled = v_frame
             
             row = 0
             col = 0
@@ -148,10 +153,15 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
             curr_frame += 1
             embedded_codewords_per_frame = 0
             
-            # Shift the positions of all pixels in the YUV components back to their original positions in the frame pixel grid.
-            y_frame = seeded_unshuffle_image(y_frame_shuffled, shift_key)
-            u_frame = seeded_unshuffle_image(u_frame_shuffled, shift_key)
-            v_frame = seeded_unshuffle_image(v_frame_shuffled, shift_key)
+            if shuffle_flag:
+                # Shift the positions of all pixels in the YUV components back to their original positions in the frame pixel grid.
+                y_frame = seeded_unshuffle_image(y_frame_shuffled, shift_key)
+                u_frame = seeded_unshuffle_image(u_frame_shuffled, shift_key)
+                v_frame = seeded_unshuffle_image(v_frame_shuffled, shift_key)
+            else:
+                y_frame = y_frame_shuffled
+                u_frame = u_frame_shuffled
+                v_frame = v_frame_shuffled
             
             cv.imwrite(y_component_path, y_frame)
             cv.imwrite(u_component_path, u_frame)
@@ -180,15 +190,17 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key,st
         
     vid_utils.reconstruct_video_from_rgb_frames(orig_video_path,vid_properties)
     
-
-    vid_utils.remove_dirs()
+    # for testing - delete dirs if flag_delete_dirs is true
+    if flag_delete_dirs:
+        vid_utils.remove_dirs()
+        
     
     print(f"[INFO] embedding finished")
-    return vid_properties
+    return len(message)
     
     
 
-def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,message_len, output_path, string_flag = False):
+def hamming_decode(stego_video_path, shift_key, col_key, row_key, message_len, output_path, string_flag = False, shuffle_flag = True, flag_recostr_vid = True):
     #FIXME: list?
     decoded_message = []
     
@@ -201,14 +213,26 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
     decoded_codeword = np.array([0, 0, 0, 0])  
 
     #* Convert the video stream into frames. Separate each frame into Y, U and V components.
-    vid_properties = vid_utils.video_to_rgb_frames(stego_video_path)
-    vid_utils.create_dirs()
-        
-    # Etracting and saving Y,U,V components    
-    for i in range(1, int(vid_properties["frames"]) + 1):
-        image_name = f"frame_{i}.png"
-        vid_utils.rgb2yuv(image_name)
-    
+    if flag_recostr_vid:
+        vid_properties = vid_utils.video_to_rgb_frames(stego_video_path)
+
+        vid_utils.create_dirs()
+            
+        # Etracting and saving Y,U,V components    
+        for i in range(1, int(vid_properties["frames"]) + 1):
+            image_name = f"frame_{i}.png"
+            vid_utils.rgb2yuv(image_name)
+    else:
+        stego_video_path = r"video.avi"
+        vid_properties = ret_properties(stego_video_path)
+        # Etracting and saving Y,U,V components  
+        #FIXME:  
+        vid_utils.create_dirs()
+        for i in range(1, int(vid_properties["frames"]) + 1):
+            image_name = f"frame_{i}.png"
+            vid_utils.rgb2yuv(image_name)
+            
+            
     
     codew_p_frame, codew_p_last_frame =  distribution_of_bits_between_frames(message_len,vid_properties["frames"])
     actual_max_codew = codew_p_frame
@@ -225,10 +249,16 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
         u_frame = cv.imread(u_component_path, cv.IMREAD_GRAYSCALE)
         v_frame = cv.imread(v_component_path, cv.IMREAD_GRAYSCALE)
         
-        #* Change the position of all pixel values in the three Y, U, and V components by the special key that was used in the embedding process.
-        y_frame_shuffled = seeded_shuffle_image(y_frame, shift_key)
-        u_frame_shuffled = seeded_shuffle_image(u_frame, shift_key)
-        v_frame_shuffled = seeded_shuffle_image(v_frame, shift_key)
+        
+        if shuffle_flag:
+            #* Change the position of all pixel values in the three Y, U, and V components by the special key that was used in the embedding process.
+            y_frame_shuffled = seeded_shuffle_image(y_frame, shift_key)
+            u_frame_shuffled = seeded_shuffle_image(u_frame, shift_key)
+            v_frame_shuffled = seeded_shuffle_image(v_frame, shift_key)
+        else:
+            y_frame_shuffled = y_frame
+            u_frame_shuffled = u_frame
+            v_frame_shuffled = v_frame
         
         
         
@@ -236,7 +266,6 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key,vid_properties,
             actual_max_codew = codew_p_last_frame
 
         stop_loop = False
-
         for row in range(int(vid_properties["height"])):
             if stop_loop:
                 break
@@ -332,11 +361,12 @@ def fill_end_zeros(input_array):
         return adjusted_array
     
 def distribution_of_bits_between_frames(len_message, frame_count):
-  codew_in_msg = len_message // 4  # total number of words (divided by 4 bits per word)
 
-  codew_p_frame, tail = divmod(codew_in_msg, frame_count)
+    codew_in_msg = len_message // 4  # total number of words (divided by 4 bits per word)
 
-  return codew_p_frame, codew_p_frame + tail
+    codew_p_frame, tail = divmod(codew_in_msg, frame_count)
+
+    return codew_p_frame, codew_p_frame + tail
 
 
 #shuffle
@@ -377,3 +407,27 @@ def write_message_to_file(message, filename):
     with open(filename, 'w', encoding='utf-8') as file:
         file.write(message)
 
+
+
+
+######################
+
+def ret_properties(video_path):
+    capture = cv.VideoCapture(video_path)
+    if not capture.isOpened():
+        print("Error: Video file cannot be opened!")
+        return
+
+    # Get video properties before processing frames
+    video_properties = {
+        "format": capture.get(cv.CAP_PROP_FORMAT),
+        "codec": capture.get(cv.CAP_PROP_FOURCC),
+        "container": capture.get(cv.CAP_PROP_POS_AVI_RATIO),
+        "fps": capture.get(cv.CAP_PROP_FPS),
+        "frames": capture.get(cv.CAP_PROP_FRAME_COUNT),
+        "width": int(capture.get(cv.CAP_PROP_FRAME_WIDTH)),
+        "height": int(capture.get(cv.CAP_PROP_FRAME_HEIGHT)),
+    }
+    capture.release()
+    
+    return video_properties
