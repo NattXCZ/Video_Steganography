@@ -6,3 +6,4 @@ tests/test.py
 tests/hamming_tests.py
 tests/dtc_testing.py
 src/methods/hamming_code_ver.py
+src/methods/chaos_maps.py
