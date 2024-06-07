@@ -51,8 +51,3 @@ def check_EOT_sequence(message):
     sequence = np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
     return np.array_equal(message[-48:], sequence)
 
-
-
-
-
-
