@@ -10,12 +10,13 @@ from src.utils import w_binary as bnr
 if __name__ == "__main__":
 
     #typy toho co muzeme vkladat
-    message_text_file = r"angel_secret.txt"
+    message_text_file = r"data_testing/angel_secret.txt"
+    
     message_text_string = "Lorem ipsum dolor sit amet congue. Ut consectetuer lorem est labore dolor. Ut quis assum erat at dolores zzril justo aliquyam aliquyam nibh eirmod labore est voluptua te sit illum. Feugiat eirmod vel no invidunt facilisis. Sed amet et vero consetetur eos sea tempor luptatum voluptua. Dolore labore sanctus et justo erat sed rebum accusam lorem illum elitr accusam takimata nonumy. Sanctus erat consequat nobis nisl amet eleifend et rebum justo lorem clita nisl. Sit velit eleifend sadipscing rebum ex. Veniam et lorem aliquyam sanctus exerci consetetur. No clita amet eirmod vulputate duo vero amet sadipscing. Magna nobis stet nonumy et aliquam. Gubergren accusam ipsum facilisi sed."
-    message_png_file = r"./carousel-horse.png"
+    message_png_file = r"data_testing/carousel-horse.png"
     
     #cesty k video souborum (vstupni video ve ktere vkladame a stego video)        
-    video_path = r"input_video.mp4"
+    video_path = r"data_testing/input_video.mp4"
     stego_video_path = r"video.avi"
     
     #klice
@@ -27,7 +28,7 @@ if __name__ == "__main__":
     output_path = r"./decoded_message.txt"
     output_path_png = r"./carousel-horse_decoded.png"
     
-    
+
     #promenna flag ridi jakou cast testujeme
     flag = 1
     
