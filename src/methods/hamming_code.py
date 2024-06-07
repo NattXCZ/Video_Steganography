@@ -225,12 +225,8 @@ def hamming_decode(stego_video_path, shift_key, col_key, row_key, message_len, o
     else:
         stego_video_path = r"video.avi"
         vid_properties = ret_properties(stego_video_path)
-        # Etracting and saving Y,U,V components  
-        #FIXME:  
-        vid_utils.create_dirs()
-        for i in range(1, int(vid_properties["frames"]) + 1):
-            image_name = f"frame_{i}.png"
-            vid_utils.rgb2yuv(image_name)
+        
+        
             
             
     
