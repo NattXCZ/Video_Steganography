@@ -66,3 +66,4 @@ if __name__ == "__main__":
         message_len_string = len(bnr.string_to_binary_array(message_text_string))
         hmc.hamming_decode(stego_video_path, key_1, key_2, key_3, message_len_string, output_path, string_flag = True, shuffle_flag = shuffle, flag_recostr_vid = recontructed_vid)
 
+
