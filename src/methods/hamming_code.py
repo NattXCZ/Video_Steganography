@@ -62,7 +62,7 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key, s
     
 
     # max amount of embedded pixels is 22% of all the pixels in frame (4 bits of message per one pixel)
-    max_codew_p_frame = int(vid_properties["height"] * vid_properties["width"] + 0.22)
+    max_codew_p_frame = int(vid_properties["height"] * vid_properties["width"] * 0.22)
     
     
     #* Convert the message into a one-dimensional array, and then shift the entire message by a shift_key.
@@ -78,7 +78,7 @@ def hamming_encode(orig_video_path, message_path, shift_key, col_key, row_key, s
     
     
     
-    # Count how much frames will be stored in each frame
+    # Count how much data will be stored in each frame
     codew_p_frame, codew_p_last_frame =  distribution_of_bits_between_frames(len(message),vid_properties["frames"])
     
     
