@@ -356,6 +356,7 @@ def fill_end_zeros(input_array):
 
         return adjusted_array
     
+
 def distribution_of_bits_between_frames(len_message, frame_count):
 
     codew_in_msg = len_message // 4  # total number of words (divided by 4 bits per word)
